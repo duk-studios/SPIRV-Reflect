@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.24)
 
 project(spirv-reflect)
 
@@ -108,11 +108,36 @@ if (SPIRV_REFLECT_BUILD_TESTS)
 endif()
 
 if(SPIRV_REFLECT_STATIC_LIB)
-    add_library(spirv-reflect-static STATIC ${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.h
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.c)
+
+    include(CMakePackageConfigHelpers)
+    include(GNUInstallDirs)
+
+    add_library(spirv-reflect-static STATIC spirv_reflect.h
+                                            spirv_reflect.c)
 
     target_include_directories(spirv-reflect-static
-                               PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-    install(TARGETS spirv-reflect-static LIBRARY DESTINATION lib)
+            PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+
+    # create config file
+    configure_package_config_file(cmake/config.cmake.in
+            "${CMAKE_CURRENT_BINARY_DIR}/spirv-reflect-config.cmake"
+            INSTALL_DESTINATION "${CMAKE_INSTALL_DATADIR}/spirv-reflect"
+            NO_SET_AND_CHECK_MACRO)
+
+    # install config files into share folder
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/spirv-reflect-config.cmake" DESTINATION "${CMAKE_INSTALL_DATADIR}/spirv-reflect")
+
+    # create the targets file for spirv-reflect
+    install(TARGETS spirv-reflect-static EXPORT spirv-reflect-targets)
+
+    # install header file
+    install(FILES spirv_reflect.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+    # install targets file into share folder
+    install(EXPORT spirv-reflect-targets NAMESPACE spirv-reflect:: DESTINATION "${CMAKE_INSTALL_DATADIR}/spirv-reflect"
+    )
 endif()
 
